@@ -209,8 +209,8 @@ public class ResizeRectangleView extends View {
 
                     int scaleLeft = (int) ((float) left / getWidthScale(MainActivity.previewWidth));
                     int scaleRight = (int) ((float) right / getWidthScale(MainActivity.previewWidth));
-                    int scaleTop = (int) ((float) top / getWidthScale(MainActivity.previewHeight));
-                    int scaleBottom = (int) ((float) bottom / getWidthScale(MainActivity.previewHeight));
+                    int scaleTop = (int) ((float) top / getHeightScale(MainActivity.previewHeight));
+                    int scaleBottom = (int) ((float) bottom / getHeightScale(MainActivity.previewHeight));
                     isCropOk = true;
                     mUpCallback.onCropVisionAreaFinish(new Rect(scaleLeft, scaleTop, scaleRight, scaleBottom));
                 }
@@ -242,10 +242,10 @@ public class ResizeRectangleView extends View {
 
     public void onShowTracking(Rect2d rect2d) {
         mPoint0.x = (int) (rect2d.x * getWidthScale(MainActivity.previewWidth));
-        mPoint0.y = (int) (rect2d.y * getWidthScale(MainActivity.previewHeight));
+        mPoint0.y = (int) (rect2d.y * getHeightScale(MainActivity.previewHeight));
 
         mPoint2.x = (int) ((rect2d.x+rect2d.width)*getWidthScale(MainActivity.previewWidth));
-        mPoint2.y = (int) ((rect2d.y+rect2d.height)*getWidthScale(MainActivity.previewHeight));
+        mPoint2.y = (int) ((rect2d.y+rect2d.height)*getHeightScale(MainActivity.previewHeight));
         postInvalidate();
     }
 
