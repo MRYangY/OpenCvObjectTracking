@@ -99,11 +99,21 @@ public class ResizeRectangleView extends View {
         mCanvasWidth = canvas.getWidth();
         mCanvasHeight = canvas.getHeight();
         if (isClean) {
+            isUp = false;
             mClearPaint.setXfermode(mClearPorter);
             canvas.drawPaint(mClearPaint);
             mClearPaint.setXfermode(mSrcPorter);
         } else {
-            canvas.drawRect(mPoint0.x, mPoint0.y, mPoint2.x, mPoint2.y, mRectanglePaint);
+            if (!isUp){
+                canvas.drawRect(mPoint0.x, mPoint0.y, mPoint2.x, mPoint2.y, mRectanglePaint);
+            }else {
+                if (isUpdate){
+                    canvas.drawRect(mPoint0.x, mPoint0.y, mPoint2.x, mPoint2.y, mRectanglePaint);
+                }else {
+                    canvas.drawRect(mPoint0.x, mPoint0.y, mPoint2.x, mPoint2.y, mRectLoseTipPaint);
+                }
+            }
+
         }
 
     }

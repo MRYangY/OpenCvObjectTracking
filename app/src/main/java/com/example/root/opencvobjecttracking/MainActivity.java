@@ -76,6 +76,8 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private Tracker mTracker;
     private Rect2d rect2d;
 
+    private Thread mTrackingThread = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -117,6 +119,17 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        reset();
+        mSrcMat.release();
+        mSrcMat = null;
+        if (mDesMat != null) {
+            mDesMat.release();
+            mDesMat = null;
+        }
+    }
 
     private void init() {
         mSrcMat = new Mat(previewHeight, previewWidth, CvType.CV_8UC1);
@@ -192,10 +205,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.reset_track:
-                isStartTracking = false;
-                isSelectArea = false;
-                mTracker = null;
-                isInit = false;
+                reset();
                 mResizeRectView.onClearCanvas();
                 break;
             case R.id.choose_tracker:
@@ -204,6 +214,21 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             default:
                 break;
         }
+    }
+
+    private void reset() {
+        isStartTracking = false;
+        isSelectArea = false;
+        if (mTrackingThread != null) {
+            try {
+                mTrackingThread.join();
+                mTrackingThread = null;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        mTracker = null;
+        isInit = false;
     }
 
     @Override
@@ -263,7 +288,13 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         rect2d.width = Math.abs(rect.right - rect.left);
         rect2d.height = Math.abs(rect.bottom - rect.top);
 
-        new ObjectTrackingThread("obj-tracking-thread").start();
+        if (mTrackingThread == null) {
+            mTrackingThread = new ObjectTrackingThread("obj-tracking-thread");
+            mTrackingThread.start();
+        }
+        if (mTracker == null) {
+            mTracker = TrackerKCF.create();
+        }
     }
 
 
@@ -282,34 +313,34 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             super.run();
             while (isStartTracking && isLoadSuccess) {
                 try {
-                    Log.e(TAG, "run: 000" );
                     mCameraRawData = mFrameDataQueue.poll(20, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                Log.e(TAG, "run: mCameraRawData = "+mCameraRawData );
                 if (mCameraRawData == null) {
                     continue;
                 }
-                Log.e(TAG, "run: 1111" );
                 byte[] data = mCameraRawData.getRawData();
                 mSrcMat.put(0, 0, data);
-                Log.e(TAG, "run: mDesMat = "+mDesMat );
                 if (mDesMat != null) {
                     Core.flip(mSrcMat, mDesMat, 1);
                     if (!isInit) {
                         isInit = mTracker.init(mDesMat, rect2d);
-                        isUpdate = mTracker.update(mDesMat, rect2d);
                     }
+                    isUpdate = mTracker.update(mDesMat, rect2d);
                 } else {
                     if (!isInit) {
                         isInit = mTracker.init(mSrcMat, rect2d);
-                        isUpdate = mTracker.update(mSrcMat, rect2d);
                     }
+                    isUpdate = mTracker.update(mSrcMat, rect2d);
                 }
-                Log.e(TAG, "run: 2222---isInit = "+isInit+"---isUpdate = "+isUpdate );
                 mResizeRectView.setTrackResult(isUpdate);
-                mResizeRectView.onShowTracking(rect2d);
+                if (isUpdate) {
+
+                    mResizeRectView.onShowTracking(rect2d);
+                }
+//                Log.e(TAG, "run: 2222---isInit = " + isInit + "---isUpdate = " + isUpdate);
+//                Log.e(TAG, "run: 333---" + rect2d.x + "--" + rect2d.y);
                 mFreeQueue.offer(mCameraRawData);
             }
         }
