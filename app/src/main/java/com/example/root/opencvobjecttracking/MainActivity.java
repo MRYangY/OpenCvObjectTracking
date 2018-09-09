@@ -1,6 +1,9 @@
 package com.example.root.opencvobjecttracking;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.graphics.Rect;
@@ -33,7 +36,12 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Rect2d;
 import org.opencv.tracking.Tracker;
+import org.opencv.tracking.TrackerBoosting;
+import org.opencv.tracking.TrackerCSRT;
 import org.opencv.tracking.TrackerKCF;
+import org.opencv.tracking.TrackerMIL;
+import org.opencv.tracking.TrackerMedianFlow;
+import org.opencv.tracking.TrackerTLD;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -48,6 +56,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private volatile boolean isStartTracking = false;
     private volatile boolean isSelectArea = false;
     private boolean isInit = false;
+    /**
+     * 隔一帧来取一帧数据进行追踪，可以
+     */
+    private boolean isSkip = true;
 
     private SurfaceView mSVContent;
     private ResizeRectangleView mResizeRectView;
@@ -209,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 mResizeRectView.onClearCanvas();
                 break;
             case R.id.choose_tracker:
-                Toast.makeText(this, "choose tracker click", Toast.LENGTH_SHORT).show();
+                showDialog(Constant.DIALOG_ID_SHOW_TRACKER_LIST);
                 break;
             default:
                 break;
@@ -320,6 +332,11 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 if (mCameraRawData == null) {
                     continue;
                 }
+                isSkip = !isSkip;
+                if (isSkip) {
+                    mFreeQueue.offer(mCameraRawData);
+                    continue;
+                }
                 byte[] data = mCameraRawData.getRawData();
                 mSrcMat.put(0, 0, data);
                 if (mDesMat != null) {
@@ -345,4 +362,65 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             }
         }
     }
+
+    @Override
+    protected Dialog onCreateDialog(int id) {
+        switch (id) {
+            case Constant.DIALOG_ID_SHOW_TRACKER_LIST:
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("选择Tracker").setItems(new CharSequence[]{"KCFTracker", "TLDTracker"
+                                , "MedianFlowTracker", "MILTracker", "CSRTTracker"}
+                        , mDialogItemListener);
+
+                return builder.create();
+        }
+        return super.onCreateDialog(id);
+    }
+
+
+    private DialogInterface.OnClickListener mDialogItemListener = new DialogInterface.OnClickListener() {
+        @Override
+        public void onClick(DialogInterface dialogInterface, int i) {
+            switch (i) {
+                case 0:
+                    //KCFTracker
+                    reset();
+                    mResizeRectView.onClearCanvas();
+                    mTracker = TrackerKCF.create();
+                    Toast.makeText(MainActivity.this, "selected TrackerKCF", Toast.LENGTH_SHORT).show();
+                    break;
+                case 1:
+                    reset();
+                    mResizeRectView.onClearCanvas();
+                    mTracker = TrackerTLD.create();
+                    Toast.makeText(MainActivity.this, "selected TrackerTLD", Toast.LENGTH_SHORT).show();
+                    break;
+                case 2:
+                    reset();
+                    mResizeRectView.onClearCanvas();
+                    mTracker = TrackerMedianFlow.create();
+                    Toast.makeText(MainActivity.this, "selected TrackerMedianFlow", Toast.LENGTH_SHORT).show();
+                    break;
+                case 3:
+                    reset();
+                    mResizeRectView.onClearCanvas();
+                    mTracker = TrackerMIL.create();
+                    Toast.makeText(MainActivity.this, "selected TrackerMIL", Toast.LENGTH_SHORT).show();
+                    break;
+                case 4:
+                    reset();
+                    mResizeRectView.onClearCanvas();
+                    mTracker = TrackerCSRT.create();
+                    Toast.makeText(MainActivity.this, "selected TrackerCSRT", Toast.LENGTH_SHORT).show();
+                    break;
+//                case 5:
+//                    reset();
+//                    mResizeRectView.onClearCanvas();
+//                    mTracker = TrackerBoosting.create();
+//                    Toast.makeText(MainActivity.this,"selected TrackerBoosting",Toast.LENGTH_SHORT).show();
+//                    break;
+            }
+
+        }
+    };
 }
